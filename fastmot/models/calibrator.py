@@ -12,14 +12,16 @@ class SSDEntropyCalibrator(trt.IInt8EntropyCalibrator2):
         trt.IInt8EntropyCalibrator2.__init__(self)
 
         self.model_shape = model_shape
-        self.num_calib_imgs = 100 # the number of images from the dataset to use for calibration
+        self.num_calib_imgs = (
+            100  # the number of images from the dataset to use for calibration
+        )
         self.batch_size = 10
         self.batch_shape = (self.batch_size, *self.model_shape)
         self.cache_file = cache_file
 
         calib_imgs = [os.path.join(data_dir, f) for f in os.listdir(data_dir)]
         self.calib_imgs = np.random.choice(calib_imgs, self.num_calib_imgs)
-        self.counter = 0 # for keeping track of how many files we have read
+        self.counter = 0  # for keeping track of how many files we have read
 
         self.input_dev = cp.empty(self.batch_shape, dtype=np.float32)
 
@@ -30,7 +32,6 @@ class SSDEntropyCalibrator(trt.IInt8EntropyCalibrator2):
     # You don't necessarily have to use them, but they can be useful to understand the order of
     # the inputs. The bindings list is expected to have the same ordering as 'names'.
     def get_batch(self, names):
-
         # if there are not enough calibration images to form a batch,
         # we have reached the end of our data set
         if self.counter == self.num_calib_imgs:

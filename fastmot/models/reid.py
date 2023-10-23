@@ -27,6 +27,7 @@ class ReID:
     METRIC : {'euclidean', 'cosine'}
         Distance metric used to match features.
     """
+
     __registry = {}
 
     PLUGIN_PATH = None
@@ -46,17 +47,17 @@ class ReID:
 
     @classmethod
     def build_engine(cls, trt_logger, batch_size):
-        with trt.Builder(trt_logger) as builder, builder.create_network(EXPLICIT_BATCH) as network, \
-            trt.OnnxParser(network, trt_logger) as parser:
-
+        with trt.Builder(trt_logger) as builder, builder.create_network(
+            EXPLICIT_BATCH
+        ) as network, trt.OnnxParser(network, trt_logger) as parser:
             builder.max_batch_size = batch_size
-            LOGGER.info('Building engine with batch size: %d', batch_size)
-            LOGGER.info('This may take a while...')
+            LOGGER.info("Building engine with batch size: %d", batch_size)
+            LOGGER.info("This may take a while...")
 
             # parse model file
-            with open(cls.MODEL_PATH, 'rb') as model_file:
+            with open(cls.MODEL_PATH, "rb") as model_file:
                 if not parser.parse(model_file.read()):
-                    LOGGER.critical('Failed to parse the ONNX file')
+                    LOGGER.critical("Failed to parse the ONNX file")
                     for err in range(parser.num_errors):
                         LOGGER.error(parser.get_error(err))
                     return None
@@ -73,37 +74,38 @@ class ReID:
 
             profile = builder.create_optimization_profile()
             profile.set_shape(
-                net_input.name,                  # input tensor name
+                net_input.name,  # input tensor name
                 (batch_size, *cls.INPUT_SHAPE),  # min shape
                 (batch_size, *cls.INPUT_SHAPE),  # opt shape
-                (batch_size, *cls.INPUT_SHAPE)   # max shape
+                (batch_size, *cls.INPUT_SHAPE),  # max shape
             )
             config.add_optimization_profile(profile)
 
             # engine = builder.build_cuda_engine(network)
             engine = builder.build_engine(network, config)
             if engine is None:
-                LOGGER.critical('Failed to build engine')
+                LOGGER.critical("Failed to build engine")
                 return None
 
             LOGGER.info("Completed creating engine")
-            with open(cls.ENGINE_PATH, 'wb') as engine_file:
+            with open(cls.ENGINE_PATH, "wb") as engine_file:
                 engine_file.write(engine.serialize())
             return engine
 
 
 class OSNet025(ReID):
-    ENGINE_PATH = Path(__file__).parent / 'osnet_x0_25_msmt17.trt'
-    MODEL_PATH = Path(__file__).parent / 'osnet_x0_25_msmt17.onnx'
+    ENGINE_PATH = Path(__file__).parent / "osnet_x0_25_msmt17.trt"
+    MODEL_PATH = Path(__file__).parent / "osnet_x0_25_msmt17.onnx"
     INPUT_SHAPE = (3, 256, 128)
     OUTPUT_LAYOUT = 512
-    METRIC = 'euclidean'
+    METRIC = "euclidean"
 
 
 class OSNet10(ReID):
     """Multi-source model trained on MSMT17, DukeMTMC, and CUHK03, not provided."""
-    ENGINE_PATH = Path(__file__).parent / 'osnet_x1_0_msdc.trt'
-    MODEL_PATH = Path(__file__).parent / 'osnet_x1_0_msdc.onnx'
+
+    ENGINE_PATH = Path(__file__).parent / "osnet_x1_0_msdc.trt"
+    MODEL_PATH = Path(__file__).parent / "osnet_x1_0_msdc.onnx"
     INPUT_SHAPE = (3, 256, 128)
     OUTPUT_LAYOUT = 512
-    METRIC = 'cosine'
+    METRIC = "cosine"
